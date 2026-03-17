@@ -5,14 +5,28 @@ import psutil
 from ..utils.logger import logger
 
 def open_application(app_name):
-    """Launches an application by name (e.g., 'notepad', 'calc')."""
+    """Launches an application by name (e.g., 'notepad', 'calc'). Handles common aliases."""
+    
+    # Common mappings to avoid "Windows cannot find" errors
+    APP_MAPPING = {
+        "browser": "msedge", # Defaulting to Edge on Windows, could be chrome
+        "web": "msedge",
+        "chrome": "chrome",
+        "explorer": "explorer",
+        "notepad": "notepad",
+        "calculator": "calc",
+        "terminal": "cmd"
+    }
+    
+    actual_app = APP_MAPPING.get(app_name.lower(), app_name)
+    
     try:
         if platform.system() == "Windows":
-            # Try start command first for common things
-            subprocess.Popen(['start', app_name], shell=True)
+            # Using start command
+            subprocess.Popen(['start', actual_app], shell=True)
         else:
-            return "Application launching is currently only optimized for Windows."
-        return f"Attempted to open {app_name}."
+            return f"Opening {app_name} is only optimized for Windows right now."
+        return f"System: Executed 'start {actual_app}'."
     except Exception as e:
         return f"Error opening application: {str(e)}"
 

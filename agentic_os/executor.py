@@ -1,7 +1,8 @@
 import json
 import importlib
+import inspect
 from .state import AgentState
-from .tools import file_tools, system_tools
+from .tools import file_tools, system_tools, tester_tools, vision_tools, network_tools, shell_tools
 from .utils.logger import logger
 
 class ExecutorNode:
@@ -13,6 +14,10 @@ class ExecutorNode:
         try:
             importlib.reload(file_tools)
             importlib.reload(system_tools)
+            importlib.reload(tester_tools)
+            importlib.reload(vision_tools)
+            importlib.reload(network_tools)
+            importlib.reload(shell_tools)
             logger.info("Hot-Reload: Tools updated successfully.")
         except Exception as e:
             logger.error(f"Hot-Reload failed: {e}")
@@ -41,6 +46,13 @@ class ExecutorNode:
         - open_application(app_name): Launch an app (notepad, calc, etc).
         - get_system_stats(): CPU, RAM, Disk usage.
         - kill_process(process_name): Force stop an app/process.
+        - run_shell_command(command): Run a PowerShell/Bash command and get text output.
+        - check_site_status(url): Check if a website or API is UP (HTTP 200).
+        - get_local_ip(): System network interface IP address.
+        - run_tests(test_file): Run automated tests (f:/LaiNUX/tests/run_all.py).
+        - screenshot(): Capture active screen for 'Vision'.
+        - type_text(text): Type into the focused window.
+        - locate_and_click(image_path): Click a visual UI element.
         
         Return JSON: {{"tool": "name", "args": {{...}}}}
         """
@@ -64,13 +76,27 @@ class ExecutorNode:
                 "parse_robust_response": file_tools.parse_robust_response,
                 "open_application": system_tools.open_application,
                 "get_system_stats": system_tools.get_system_stats,
-                "kill_process": system_tools.kill_process
+                "kill_process": system_tools.kill_process,
+                "run_tests": tester_tools.run_tests,
+                "run_shell_command": shell_tools.run_shell_command,
+                "check_site_status": network_tools.check_site_status,
+                "get_local_ip": network_tools.get_local_ip,
+                "screenshot": vision_tools.screenshot,
+                "type_text": vision_tools.type_text,
+                "locate_and_click": vision_tools.locate_and_click
             }
             
             t_name = data.get("tool")
             if t_name in all_tools:
                 logger.info(f"Running: {t_name}")
-                result = all_tools[t_name](**data.get("args", {}))
+                tool_func = all_tools[t_name]
+                tool_args = data.get("args", {})
+                
+                # Filter args based on function signature (Security & Error Prevention)
+                sig = inspect.signature(tool_func)
+                filtered_args = {k: v for k, v in tool_args.items() if k in sig.parameters}
+                
+                result = tool_func(**filtered_args)
             else:
                 result = f"Error: Tool '{t_name}' is not in my core library."
                 

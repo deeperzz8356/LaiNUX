@@ -1,224 +1,624 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LaiNUX OS | Neural Control Center</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
     <style>
         :root {
-            --bg-dark: #0a0b10;
-            --accent-blue: #0088ff;
+            --bg-dark: #010206;
+            --accent-cyan: #00f2ff;
             --accent-purple: #9d00ff;
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --border-color: rgba(255, 255, 255, 0.1);
-            --success-green: #00ff88;
-            --error-red: #ff3333;
+            --accent-magenta: #ff00ff;
+            --glass-bg: rgba(6, 8, 15, 0.75);
+            --glass-border: rgba(0, 242, 255, 0.25);
+            --neon-glow: 0 0 20px rgba(0, 242, 255, 0.4);
+            --font-main: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
         }
 
-        body {
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
             background: var(--bg-dark);
             color: #fff;
-            font-family: 'Outfit', sans-serif;
-            margin: 0;
-            padding: 20px;
-            overflow-x: hidden;
-            background-image: radial-gradient(circle at 50% 50%, rgba(157, 0, 255, 0.05), transparent);
+            font-family: var(--font-main);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        .dashboard {
-            max-width: 1400px;
-            margin: 0 auto;
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            background: radial-gradient(circle at 50% 50%, #0a0e1a 0%, #010206 100%);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
             display: grid;
-            grid-template-columns: 350px 1fr 350px;
-            gap: 20px;
-            height: 95vh;
+            grid-template-columns: 380px 1fr 380px;
+            grid-template-rows: 100px 1fr 100px;
+            gap: 25px;
+            padding: 30px;
+            pointer-events: none;
+            box-sizing: border-box;
+        }
+
+        .header {
+            grid-column: span 3;
+            text-align: center;
+            pointer-events: auto;
+            position: relative;
+        }
+
+        .header p {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+            letter-spacing: 5px;
+            margin-bottom: 5px;
+            opacity: 0.8;
+            text-transform: uppercase;
+        }
+
+        .header h1 {
+            font-weight: 400;
+            letter-spacing: 15px;
+            margin: 0;
+            background: linear-gradient(90deg, #fff, var(--accent-cyan), var(--accent-magenta));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            font-size: 3rem;
+            filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.3));
         }
 
         .panel {
             background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 20px;
-            overflow-y: auto;
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 25px;
+            pointer-events: auto;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
             display: flex;
             flex-direction: column;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .panel:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.15);
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+            transition: 0.5s;
+        }
+
+        .panel:hover::before {
+            left: 100%;
         }
 
         .panel-header {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: var(--accent-blue);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .pulse {
-            width: 10px;
-            height: 10px;
-            background: var(--success-green);
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
-            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
-        }
-
-        .terminal {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
-            line-height: 1.6;
-            color: #aab;
-        }
-
-        .step-item {
-            margin-bottom: 15px;
-            padding-left: 15px;
-            border-left: 2px solid var(--accent-purple);
-        }
-
-        .wisdom-item {
-            background: rgba(157, 0, 255, 0.1);
-            border: 1px solid var(--accent-purple);
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 10px;
+            font-family: var(--font-mono);
             font-size: 0.85rem;
+            color: var(--accent-cyan);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 242, 255, 0.15);
+            padding-bottom: 10px;
+            font-weight: 600;
         }
 
-        .stats-grid {
+        .panel-body {
+            flex-grow: 1;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+
+        .panel-body::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Logic Feed Styles */
+        .terminal-text {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #b0b0cc;
+        }
+
+        .step-active {
+            color: var(--accent-cyan);
+            border-left: 3px solid var(--accent-cyan);
+            padding: 15px;
+            margin: 15px 0;
+            background: linear-gradient(90deg, rgba(0, 242, 255, 0.1), transparent);
+            border-radius: 0 8px 8px 0;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Health Meters */
+        .meter-container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .meter {
+            height: 50px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            width: 0%;
+            transition: width 1.5s cubic-bezier(0.23, 1, 0.32, 1);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+        }
+
+        .meter-label {
+            position: absolute;
+            top: 50%;
+            left: 15px;
+            transform: translateY(-50%);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            z-index: 2;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .meter-value {
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            font-size: 1rem;
+            font-family: var(--font-mono);
+            z-index: 2;
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        /* Wisdom Forge Matrix */
+        .wisdom-tag {
+            background: rgba(157, 0, 255, 0.08);
+            border: 1px solid rgba(157, 0, 255, 0.2);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            color: #e0b0ff;
+            line-height: 1.4;
+            transition: all 0.3s ease;
+        }
+
+        .wisdom-tag:hover {
+            background: rgba(157, 0, 255, 0.15);
+            border-color: var(--accent-purple);
+        }
+
+        /* Hologram Effect */
+        .scanline {
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(0deg, transparent, rgba(0, 242, 255, 0.05), transparent);
+            position: absolute;
+            top: -100px;
+            left: 0;
+            pointer-events: none;
+            z-index: 100;
+            animation: scanLoop 4s linear infinite;
+        }
+
+        @keyframes scanLoop {
+            0% { top: -100px; }
+            100% { top: 100%; }
+        }
+
+        .status-pill {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: rgba(0, 255, 128, 0.1);
+            color: #00ff80;
+            border: 1px solid rgba(0, 255, 128, 0.3);
+            text-transform: uppercase;
+        }
+
+        #target-task {
+            font-size: 1.4rem;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(0, 242, 255, 0.5);
+            margin: 15px 0;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .neural-glow {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(0, 242, 255, 0.15), transparent 70%);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        @keyframes pulseGlow {
+            0% { opacity: 0.4; text-shadow: 0 0 5px var(--accent-cyan); }
+            50% { opacity: 1; text-shadow: 0 0 20px var(--accent-cyan); }
+            100% { opacity: 0.4; text-shadow: 0 0 5px var(--accent-cyan); }
+        }
+
+        .evolution-metrics {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 15px;
+            margin-bottom: 25px;
         }
 
-        .stat-card {
+        .metric-mini {
             background: rgba(255, 255, 255, 0.03);
-            padding: 15px;
-            border-radius: 15px;
+            border: 1px solid rgba(0, 242, 255, 0.1);
+            padding: 10px;
+            border-radius: 12px;
             text-align: center;
         }
 
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--accent-blue);
+        .metric-mini .label {
+            font-size: 0.6rem;
+            color: #666;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 4px;
         }
 
-        h1 {
-            grid-column: span 3;
-            font-weight: 300;
-            letter-spacing: 5px;
-            margin: 0 0 10px 0;
-            text-align: center;
-            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .metric-mini .value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            font-family: var(--font-mono);
         }
 
-        #goal-display {
-            font-style: italic;
-            color: #888;
-            margin-bottom: 10px;
+        .progress-mini {
+            height: 6px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
         }
+
+        #depth-bar {
+            height: 100%;
+            background: var(--accent-cyan);
+            width: 75%;
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        #task-iteration {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--accent-magenta);
+            border: 1px solid var(--accent-magenta);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .wisdom-tag {
+            background: rgba(188, 19, 254, 0.1);
+            border-left: 3px solid var(--accent-magenta);
+            padding: 10px;
+            border-radius: 0 10px 10px 0;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+            color: #d8b;
+        }
+
+
     </style>
 </head>
 <body>
-    <h1>LAINUX : NEURAL DASHBOARD</h1>
-    <div class="dashboard">
-        <!-- System Health -->
-        <div class="panel">
-            <div class="panel-header"><div class="pulse"></div> ARCHITECTURE HEALTH</div>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div id="cpu-load" class="stat-value">--</div>
-                    <div>CPU LOAD</div>
+    <div id="canvas-container"></div>
+    <div class="neural-glow"></div>
+
+    <div class="overlay">
+        <!-- Header -->
+        <header class="header">
+            <p>QUANTUM PROCESSING UNIT • VERSION 2.5</p>
+            <h1>LaiNUX : NEURAL OS</h1>
+            <div id="task-iteration">EVO_ITERATION: 0</div>
+        </header>
+
+        <!-- Left Column -->
+        <div style="display: flex; flex-direction: column; gap: 25px; grid-row: 2;">
+            <div class="panel" style="height: 220px;">
+                <div class="panel-header">
+                    <span>ARCHITECTURE HEALTH</span>
+                    <span class="status-pill">OPTIMAL</span>
                 </div>
-                <div class="stat-card">
-                    <div id="ram-usage" class="stat-value">--</div>
-                    <div>RAM USAGE</div>
+                <div class="panel-body">
+                    <div class="meter-container">
+                        <div class="meter">
+                            <div class="meter-label">Synaptic Load</div>
+                            <div id="cpu-fill" class="meter-fill" style="width: 14%;"></div>
+                            <div id="cpu-val" class="meter-value">14%</div>
+                        </div>
+                        <div class="meter">
+                            <div class="meter-label">Quantum State</div>
+                            <div id="ram-fill" class="meter-fill" style="width: 42%; background: linear-gradient(90deg, var(--accent-magenta), var(--accent-purple));"></div>
+                            <div id="ram-val" class="meter-value">4.2 GB</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <br>
-            <div class="panel-header">WISDOM FORGE</div>
-            <div id="wisdom-container">
-                <!-- Wisdom nuggets appear here -->
+
+            <div class="panel" style="flex-grow: 1;">
+                <div class="panel-header">
+                    <span>WISDOM FORGE</span>
+                    <span style="color: #666; font-size: 0.7rem;">DEEP LEARNING CACHE</span>
+                </div>
+                <div class="panel-body">
+                    <div class="evolution-metrics">
+                        <div class="metric-mini">
+                            <span class="label">Evolution Depth</span>
+                            <span class="value" id="evo-depth">94%</span>
+                            <div class="progress-mini"><div id="depth-bar"></div></div>
+                        </div>
+                        <div class="metric-mini">
+                            <span class="label">Self-Healing</span>
+                            <span class="value" style="color: #00ff80;">ACTIVE</span>
+                        </div>
+                    </div>
+                    <div id="wisdom-container">
+                        <div class="wisdom-tag">Neural pathway optimization initialized...</div>
+                        <div class="wisdom-tag">Quantum coherence maintained at 99.8%.</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Execution Graph -->
-        <div class="panel">
-            <div class="panel-header">EXECUTION LOGIC FEED</div>
-            <div id="goal-display">Waiting for task...</div>
-            <div id="log-container" class="terminal">
-                <!-- Steps appear here -->
-            </div>
+        <!-- Center Space -->
+        <div style="grid-column: 2; pointer-events: none; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 60px;">
+             <div id="target-task">Initializing Neural Core...</div>
+             <div style="color: var(--accent-cyan); font-family: var(--font-mono); font-size: 0.9rem; letter-spacing: 2px; animation: pulseGlow 2s infinite;">[ CORE_STABILITY_LOCKED ]</div>
         </div>
 
-        <!-- Self-Healing Engine -->
-        <div class="panel">
-            <div class="panel-header">SELF-HEALING (DEBUGGER)</div>
-            <div id="healing-logs" class="terminal" style="color: var(--success-green);">
-                AI is monitoring for bugs...
+        <!-- Right Column -->
+        <div style="display: flex; flex-direction: column; gap: 25px; grid-row: 2;">
+            <div class="panel" style="flex-grow: 2;">
+                <div class="panel-header">
+                    <span>EXECUTION LOGIC FEED</span>
+                    <span class="status-pill" id="status-tag">STANDBY</span>
+                </div>
+                <div class="panel-body terminal-text" id="log-container">
+                    <div style="opacity: 0.5;">> Neural OS v2.5 Online...</div>
+                    <div style="opacity: 0.5;">> Waiting for synaptic input...</div>
+                </div>
             </div>
-            <br>
-            <div class="panel-header">CODER NODE ACTIVITY</div>
-            <div id="coder-activity" class="terminal">
-                Waiting to expand architecture...
+
+            <div class="panel" style="height: 180px;">
+                <div class="panel-header">
+                    <span>SELF-HEALING ENGINE</span>
+                </div>
+                <div class="panel-body terminal-text" id="healing-logs" style="color: #00ff80; font-size: 0.75rem;">
+                    [INFO] AI Integrity: SEALED
+                    [INFO] Monitoring recursive loops...
+                </div>
             </div>
         </div>
+        <div class="scanline"></div>
     </div>
 
     <script>
-        const ws = new WebSocket('ws://localhost:8000/ws');
-        const logContainer = document.getElementById('log-container');
-        const wisdomContainer = document.getElementById('wisdom-container');
-        const cpuDisplay = document.getElementById('cpu-load');
-        const ramDisplay = document.getElementById('ram-usage');
-        const goalDisplay = document.getElementById('goal-display');
+        // --- THREE.JS ADVANCED NEURAL ENGINE ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        camera.position.z = 8;
+
+        // Space Dust / Particles
+        const partGeo = new THREE.BufferGeometry();
+        const partCount = 1000;
+        const partPos = new Float32Array(partCount * 3);
+        for(let i=0; i<partCount*3; i++) partPos[i] = (Math.random() - 0.5) * 25;
+        partGeo.setAttribute('position', new THREE.BufferAttribute(partPos, 3));
+        const partMat = new THREE.PointsMaterial({ color: 0x00f2ff, size: 0.02, transparent: true, opacity: 0.4 });
+        const particles = new THREE.Points(partGeo, partMat);
+        scene.add(particles);
+
+        // Neural Net Core
+        const nodeGroup = new THREE.Group();
+        const nodeCount = 80;
+        const nodes = [];
+        const nodeGeometry = new THREE.SphereGeometry(0.06, 12, 12);
+        const nodeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        
+        for(let i=0; i<nodeCount; i++) {
+            const mesh = new THREE.Mesh(nodeGeometry, nodeMaterial.clone());
+            mesh.position.set(
+                (Math.random() - 0.5) * 8,
+                (Math.random() - 0.5) * 8,
+                (Math.random() - 0.5) * 8
+            );
+            // Random movement vectors
+            mesh.userData.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.005,
+                (Math.random() - 0.5) * 0.005,
+                (Math.random() - 0.5) * 0.005
+            );
+            mesh.userData.originalPos = mesh.position.clone();
+            nodes.push(mesh);
+            nodeGroup.add(mesh);
+        }
+
+        // Dynamic Connections
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.15 });
+        let lineGeometry = new THREE.BufferGeometry();
+        let lines = new THREE.LineSegments(lineGeometry, lineMaterial);
+        nodeGroup.add(lines);
+
+        scene.add(nodeGroup);
+
+        // Lights
+        const light = new THREE.PointLight(0x00f2ff, 1, 100);
+        light.position.set(0, 0, 5);
+        scene.add(light);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now() * 0.001;
+
+            // Animate Particles
+            particles.rotation.y += 0.0005;
+
+            // Animate Nodes individually (Drifting)
+            const positions = [];
+            nodes.forEach((node, i) => {
+                // Harmonic drift
+                node.position.add(node.userData.velocity);
+                
+                // Keep within bounds
+                if (node.position.distanceTo(new THREE.Vector3(0,0,0)) > 6) {
+                    node.userData.velocity.negate();
+                }
+
+                // Individual pulse
+                const pulse = Math.sin(time * 2 + i) * 0.5 + 1.2;
+                node.scale.setScalar(pulse);
+                node.material.color.setHSL(0.5 + Math.sin(time * 0.5 + i) * 0.1, 1, 0.5 + Math.sin(time) * 0.1);
+            });
+
+            // Recompute lines
+            const linePositions = [];
+            for(let i=0; i<nodes.length; i++) {
+                for(let j=i+1; j<nodes.length; j++) {
+                    const dist = nodes[i].position.distanceTo(nodes[j].position);
+                    if(dist < 2.5) {
+                        linePositions.push(nodes[i].position.x, nodes[i].position.y, nodes[i].position.z);
+                        linePositions.push(nodes[j].position.x, nodes[j].position.y, nodes[j].position.z);
+                    }
+                }
+            }
+            nodeGroup.remove(lines);
+            lineGeometry = new THREE.BufferGeometry();
+            lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+            lines = new THREE.LineSegments(lineGeometry, lineMaterial);
+            nodeGroup.add(lines);
+
+            nodeGroup.rotation.y += 0.001;
+            nodeGroup.rotation.z += 0.0005;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- WEBSOCKET SYNC ---
+        const ws = new WebSocket('ws://' + window.location.host + '/ws');
+        const logBox = document.getElementById('log-container');
+        const wisdomBox = document.getElementById('wisdom-container');
+        const goalTxt = document.getElementById('target-task');
+        const cpuBar = document.getElementById('cpu-fill');
+        const ramBar = document.getElementById('ram-fill');
+        const statusTag = document.getElementById('status-tag');
 
         ws.onmessage = (event) => {
             const state = JSON.parse(event.data);
-            updateUI(state);
-        };
-
-        function updateUI(state) {
-            // Update Goal
-            goalDisplay.innerText = "Target: " + (state.goal || "None");
-
-            // Update Steps
-            logContainer.innerHTML = state.plan.map((step, i) => `
-                <div class="step-item">
-                    <span style="color: var(--accent-blue)">[${i+1}]</span> ${step}
-                    <div style="font-size: 0.75rem; color: #666;">
-                        ${state.tool_outputs[i] || "Executing..."}
+            
+            if(state.goal) goalTxt.innerText = state.goal;
+            statusTag.innerText = state.status.toUpperCase();
+            
+            if(state.plan) {
+                logBox.innerHTML = state.plan.map((step, i) => `
+                    <div class="${i === state.current_step_index ? 'step-active' : ''}">
+                        <span style="color: var(--accent-magenta); font-weight: bold;">[TASK_${i+1}]</span> ${step}
+                        <div style="font-size: 0.75rem; color: #88a; margin-top: 5px; font-family: var(--font-mono)">
+                            ${state.tool_outputs[i] || "> Processing logic..."}
+                        </div>
                     </div>
-                </div>
-            `).join('');
-
-            // Update Wisdom
-            if(state.wisdom) {
-                wisdomContainer.innerHTML = state.wisdom.map(w => `
-                    <div class="wisdom-item">${w}</div>
                 `).join('');
+                logBox.scrollTop = logBox.scrollHeight;
             }
 
-            // Update Healing
+            if(state.wisdom) {
+                wisdomBox.innerHTML = state.wisdom.map(w => `<div class="wisdom-tag">${w}</div>`).join('');
+                
+                // Extraction of iteration info if present
+                const iterInfo = state.wisdom.find(w => w.includes("Evolution Cycle"));
+                if(iterInfo) {
+                    const match = iterInfo.match(/Cycle (\d+)/);
+                    if(match) {
+                        document.getElementById('task-iteration').innerText = `EVO_ITERATION: ${match[1]}`;
+                        const depth = 94 + (parseInt(match[1]) * 0.5);
+                        document.getElementById('evo-depth').innerText = depth.toFixed(1) + "%";
+                        document.getElementById('depth-bar').style.width = depth + "%";
+                    }
+                }
+            }
+
             if(state.reflection) {
-                document.getElementById('healing-logs').innerText = state.reflection;
+                document.getElementById('healing-logs').innerText = `[REFLECT] ${state.reflection}`;
             }
 
-            // Simple stats simulation (API will feed real ones)
-            cpuDisplay.innerText = Math.floor(Math.random() * 15 + 5) + "%";
-            ramDisplay.innerText = "8.2 GB";
-        }
+
+            // Pseudo-dynamic stats
+            const cpu = Math.floor(Math.random() * 20 + 10);
+            cpuBar.style.width = cpu + "%";
+            document.getElementById('cpu-val').innerText = cpu + "%";
+            ramBar.style.width = "42%";
+        };
     </script>
 </body>
 </html>

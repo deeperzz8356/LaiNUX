@@ -10,22 +10,14 @@ class PlannerNode:
     def __call__(self, state: AgentState):
         logger.info(f"Planning for goal: {state['goal']}")
         
-        # Load historical wisdom and perform 'Neural Attention'
-        all_wisdom = self.memory.get_wisdom()
+        # Load historical wisdom and perform 'Neural Attention' (RAG Search)
+        all_wisdom = self.memory.get_wisdom(query=state['goal'], limit=5)
         
         if all_wisdom:
-            attention_prompt = f"""
-            Goal: "{state['goal']}"
-            Wisdom Bank: {all_wisdom}
-            Identify the top 3 MOST RELEVANT lessons to help achieve this goal.
-            Return ONLY a comma-separated list of the lesson IDs or text.
-            """
-            try:
-                state['wisdom'] = self.model.invoke(attention_prompt).content.strip().split("\n")
-            except:
-                state['wisdom'] = all_wisdom[:5]
+            state['wisdom'] = all_wisdom
         else:
-            state['wisdom'] = ["No neural synapses formed yet."]
+            state['wisdom'] = ["No relevant neural synapses found for this context."]
+
             
         wisdom_context = "\n- ".join(state['wisdom'])
         

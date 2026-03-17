@@ -6,6 +6,7 @@ from .evolver import EvolverNode
 from .researcher import ResearcherNode
 from .coder import CoderNode
 from .debugger import DebuggerNode
+from .critic import CriticNode
 from .utils.logger import logger
 
 def create_agent_graph(llm, memory):
@@ -16,6 +17,7 @@ def create_agent_graph(llm, memory):
     evolver = EvolverNode(llm, memory)
     coder = CoderNode(llm)
     debugger = DebuggerNode(llm)
+    critic = CriticNode(llm)
     
     # Create the graph
     workflow = StateGraph(AgentState)
@@ -27,6 +29,7 @@ def create_agent_graph(llm, memory):
     workflow.add_node("debugger", debugger)
     workflow.add_node("evolver", evolver)
     workflow.add_node("coder", coder)
+    workflow.add_node("critic", critic)
     
     # Set entry point
     workflow.set_entry_point("researcher")
@@ -45,6 +48,7 @@ def create_agent_graph(llm, memory):
     # Flow: Debugger (Fix bugs) -> Evolver (Learn lessons) -> Coder (Write/Repair tools)
     workflow.add_edge("debugger", "evolver")
     workflow.add_edge("evolver", "coder")
-    workflow.add_edge("coder", END)
+    workflow.add_edge("coder", "critic")
+    workflow.add_edge("critic", END)
     
     return workflow.compile()
