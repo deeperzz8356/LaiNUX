@@ -19,16 +19,18 @@ class PlannerNode:
             Return ONLY a JSON list of strings.
             Example: ["list files", "read file test.txt"]
             """
-            # Simulate LLM response for demonstration if no key is present
-            # result = self.model.invoke(prompt)
-            # state['plan'] = json.loads(result.content)
-            
-            # Placeholder logic for prototype
-            if "list" in state['goal'].lower():
-                state['plan'] = ["list files in current directory"]
-            elif "create" in state['goal'].lower():
-                state['plan'] = ["create a file named hello.txt", "write 'hello world' to hello.txt"]
-            else:
+            # Use the LLM to generate a plan
+            result = self.model.invoke(prompt)
+            try:
+                # Clean the content in case of markdown blocks
+                content = result.content.strip()
+                if content.startswith("```json"):
+                    content = content[7:-3].strip()
+                elif content.startswith("```"):
+                    content = content[3:-3].strip()
+                state['plan'] = json.loads(content)
+            except Exception as e:
+                logger.error(f"Failed to parse plan: {e}")
                 state['plan'] = ["list files in current directory"]
         
         state['status'] = "planned"

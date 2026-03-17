@@ -6,18 +6,13 @@ from agentic_os.memory.memory_store import MemoryStore
 
 load_dotenv()
 
-class MockLLM:
-    """Mock LLM for demonstration without an API key."""
-    def invoke(self, prompt):
-        class Content:
-            content = '[]'
-        return Content()
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 def main():
-    logger.info("Starting Agentic OS...")
+    logger.info("Starting Agentic OS with Gemini...")
     
-    # Initialize components
-    llm = MockLLM()
+    # Initialize Gemini model
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
     graph = create_agent_graph(llm)
     memory = MemoryStore()
     
