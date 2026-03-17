@@ -6,3 +6,5 @@ fastapi
 uvicorn
 python-dotenv
 langchain-google-genai
+duckduckgo-search
+psutil

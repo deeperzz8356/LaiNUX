@@ -19,6 +19,13 @@ class MemoryStore:
             )
         ''')
         cursor.execute('''
+            CREATE TABLE IF NOT EXISTS wisdom (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                learned_lesson TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute('''
             CREATE TABLE IF NOT EXISTS history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 task_id INTEGER,
@@ -52,3 +59,20 @@ class MemoryStore:
         cursor.execute("INSERT INTO history (task_id, step, result) VALUES (?, ?, ?)", (task_id, step, result))
         conn.commit()
         conn.close()
+
+    def record_wisdom(self, lesson):
+        """Saves a learned lesson for long-term evolution."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO wisdom (learned_lesson) VALUES (?)", (lesson,))
+        conn.commit()
+        conn.close()
+
+    def get_wisdom(self):
+        """Retrieves all historical wisdom for the planner/executor."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT learned_lesson FROM wisdom ORDER BY timestamp DESC LIMIT 20")
+        rows = cursor.fetchall()
+        conn.close()
+        return [row[0] for row in rows]

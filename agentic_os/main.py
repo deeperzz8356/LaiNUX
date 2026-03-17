@@ -1,20 +1,25 @@
 import os
+import threading
 from dotenv import load_dotenv
 from agentic_os.agent_graph import create_agent_graph
 from agentic_os.utils.logger import logger
 from agentic_os.memory.memory_store import MemoryStore
+from agentic_os.service.api import start_api_server, broadcast_state
+from langchain_google_genai import ChatGoogleGenerativeAI
+import asyncio
 
 load_dotenv()
-
-from langchain_google_genai import ChatGoogleGenerativeAI
 
 def main():
     logger.info("Starting Agentic OS with Gemini...")
     
-    # Initialize Gemini model
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
-    graph = create_agent_graph(llm)
+    # Start the Neural Dashboard Backend in a background thread
+    daemon_thread = threading.Thread(target=start_api_server, daemon=True)
+    daemon_thread.start()
+    logger.info("Neural Dashboard active at: http://localhost:8000")
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
     memory = MemoryStore()
+    graph = create_agent_graph(llm, memory)
     
     print("====================================")
     print("   AGENTIC AI OPERATING SYSTEM      ")
@@ -38,12 +43,21 @@ def main():
             "tool_outputs": [],
             "history": [],
             "status": "started",
-            "final_result": None
+            "final_result": None,
+            "reflection": None,
+            "wisdom": [],
+            "research_notes": None,
+            "missing_tool": None
         }
         
         # Run the graph
         logger.info(f"Running task: {user_input}")
+        asyncio.run(broadcast_state(initial_state))
+        
         result_state = graph.invoke(initial_state)
+        
+        # Broadcast the final evolved state to the dashboard
+        asyncio.run(broadcast_state(result_state))
         
         # Update memory and show result
         memory.update_task_status(task_id, result_state['status'])

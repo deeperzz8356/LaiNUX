@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaiNUX OS | Neural Control Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0b10;
+            --accent-blue: #0088ff;
+            --accent-purple: #9d00ff;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --success-green: #00ff88;
+            --error-red: #ff3333;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 50% 50%, rgba(157, 0, 255, 0.05), transparent);
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 350px 1fr 350px;
+            gap: 20px;
+            height: 95vh;
+        }
+
+        .panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pulse {
+            width: 10px;
+            height: 10px;
+            background: var(--success-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+        }
+
+        .terminal {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #aab;
+        }
+
+        .step-item {
+            margin-bottom: 15px;
+            padding-left: 15px;
+            border-left: 2px solid var(--accent-purple);
+        }
+
+        .wisdom-item {
+            background: rgba(157, 0, 255, 0.1);
+            border: 1px solid var(--accent-purple);
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        h1 {
+            grid-column: span 3;
+            font-weight: 300;
+            letter-spacing: 5px;
+            margin: 0 0 10px 0;
+            text-align: center;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #goal-display {
+            font-style: italic;
+            color: #888;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>LAINUX : NEURAL DASHBOARD</h1>
+    <div class="dashboard">
+        <!-- System Health -->
+        <div class="panel">
+            <div class="panel-header"><div class="pulse"></div> ARCHITECTURE HEALTH</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div id="cpu-load" class="stat-value">--</div>
+                    <div>CPU LOAD</div>
+                </div>
+                <div class="stat-card">
+                    <div id="ram-usage" class="stat-value">--</div>
+                    <div>RAM USAGE</div>
+                </div>
+            </div>
+            <br>
+            <div class="panel-header">WISDOM FORGE</div>
+            <div id="wisdom-container">
+                <!-- Wisdom nuggets appear here -->
+            </div>
+        </div>
+
+        <!-- Execution Graph -->
+        <div class="panel">
+            <div class="panel-header">EXECUTION LOGIC FEED</div>
+            <div id="goal-display">Waiting for task...</div>
+            <div id="log-container" class="terminal">
+                <!-- Steps appear here -->
+            </div>
+        </div>
+
+        <!-- Self-Healing Engine -->
+        <div class="panel">
+            <div class="panel-header">SELF-HEALING (DEBUGGER)</div>
+            <div id="healing-logs" class="terminal" style="color: var(--success-green);">
+                AI is monitoring for bugs...
+            </div>
+            <br>
+            <div class="panel-header">CODER NODE ACTIVITY</div>
+            <div id="coder-activity" class="terminal">
+                Waiting to expand architecture...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ws = new WebSocket('ws://localhost:8000/ws');
+        const logContainer = document.getElementById('log-container');
+        const wisdomContainer = document.getElementById('wisdom-container');
+        const cpuDisplay = document.getElementById('cpu-load');
+        const ramDisplay = document.getElementById('ram-usage');
+        const goalDisplay = document.getElementById('goal-display');
+
+        ws.onmessage = (event) => {
+            const state = JSON.parse(event.data);
+            updateUI(state);
+        };
+
+        function updateUI(state) {
+            // Update Goal
+            goalDisplay.innerText = "Target: " + (state.goal || "None");
+
+            // Update Steps
+            logContainer.innerHTML = state.plan.map((step, i) => `
+                <div class="step-item">
+                    <span style="color: var(--accent-blue)">[${i+1}]</span> ${step}
+                    <div style="font-size: 0.75rem; color: #666;">
+                        ${state.tool_outputs[i] || "Executing..."}
+                    </div>
+                </div>
+            `).join('');
+
+            // Update Wisdom
+            if(state.wisdom) {
+                wisdomContainer.innerHTML = state.wisdom.map(w => `
+                    <div class="wisdom-item">${w}</div>
+                `).join('');
+            }
+
+            // Update Healing
+            if(state.reflection) {
+                document.getElementById('healing-logs').innerText = state.reflection;
+            }
+
+            // Simple stats simulation (API will feed real ones)
+            cpuDisplay.innerText = Math.floor(Math.random() * 15 + 5) + "%";
+            ramDisplay.innerText = "8.2 GB";
+        }
+    </script>
+</body>
+</html>
