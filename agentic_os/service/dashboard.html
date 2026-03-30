@@ -1,624 +1,925 @@
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaiNUX : NEURAL OS</title>
+    <!-- High-End Graphs: Apache ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <!-- Animation: GSAP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <!-- 3D Background: Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Modern Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --bg-dark: #010206;
+            --bg-dark: #05050A;
             --accent-cyan: #00f2ff;
             --accent-purple: #9d00ff;
             --accent-magenta: #ff00ff;
-            --glass-bg: rgba(6, 8, 15, 0.75);
-            --glass-border: rgba(0, 242, 255, 0.25);
-            --neon-glow: 0 0 20px rgba(0, 242, 255, 0.4);
+            --chat-surface: rgba(17, 24, 39, 0.78);
+            --chat-panel: rgba(12, 18, 32, 0.92);
+            --chat-border: rgba(148, 163, 184, 0.25);
+            --chat-user: rgba(34, 197, 94, 0.18);
+            --chat-assistant: rgba(255, 255, 255, 0.06);
+            --glass-bg: rgba(10, 15, 30, 0.65);
+            --glass-border: rgba(0, 242, 255, 0.2);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
             --font-main: 'Outfit', sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
         }
 
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             background: var(--bg-dark);
             color: #fff;
             font-family: var(--font-main);
             overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
 
         #canvas-container {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            background: radial-gradient(circle at 50% 50%, #0a0e1a 0%, #010206 100%);
-        }
-
-        .overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            display: grid;
-            grid-template-columns: 380px 1fr 380px;
-            grid-template-rows: 100px 1fr 100px;
-            gap: 25px;
-            padding: 30px;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0;
+            opacity: 0.6;
             pointer-events: none;
-            box-sizing: border-box;
         }
 
-        .header {
-            grid-column: span 3;
-            text-align: center;
-            pointer-events: auto;
+        #os-desktop {
             position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            min-height: 0;
         }
 
-        .header p {
-            font-family: var(--font-mono);
-            font-size: 0.7rem;
-            color: var(--accent-cyan);
-            letter-spacing: 5px;
-            margin-bottom: 5px;
-            opacity: 0.8;
-            text-transform: uppercase;
+        /* --- OS Menubar --- */
+        #os-menubar {
+            height: 50px;
+            background: rgba(5, 5, 10, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
 
-        .header h1 {
-            font-weight: 400;
-            letter-spacing: 15px;
-            margin: 0;
-            background: linear-gradient(90deg, #fff, var(--accent-cyan), var(--accent-magenta));
+        .logo {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            background: linear-gradient(90deg, #fff, var(--accent-cyan));
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
             text-transform: uppercase;
-            font-size: 3rem;
-            filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.3));
         }
 
-        .panel {
+        .logo span { font-size: 0.8rem; color: var(--accent-purple); -webkit-text-fill-color: var(--accent-purple); }
+
+        #goal-display {
+            font-size: 1rem;
+            color: var(--accent-cyan);
+            font-family: var(--font-mono);
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+            letter-spacing: 1px;
+            opacity: 0.8;
+            max-width: 40%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sys-tray {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(0, 255, 128, 0.1);
+            color: #00ff80;
+            border: 1px solid rgba(0, 255, 128, 0.3);
+            font-weight: bold;
+        }
+
+        /* --- Windows Layout --- */
+        #window-area {
+            flex: 1;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: 350px 1fr 380px;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .os-window {
             background: var(--glass-bg);
             backdrop-filter: blur(25px);
             border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 25px;
-            pointer-events: auto;
-            position: relative;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            border-radius: 16px;
+            box-shadow: var(--glass-shadow);
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            transition: border-color 0.3s, transform 0.3s;
         }
 
-        .panel:hover {
+        .os-window:hover {
             border-color: var(--accent-cyan);
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 0 30px rgba(0, 242, 255, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 242, 255, 0.1);
         }
 
-        .panel::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-            transition: 0.5s;
-        }
-
-        .panel:hover::before {
-            left: 100%;
-        }
-
-        .panel-header {
+        .win-titlebar {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
             font-family: var(--font-mono);
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             color: var(--accent-cyan);
-            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(0, 242, 255, 0.15);
-            padding-bottom: 10px;
+        }
+
+        .win-content {
+            padding: 20px;
+            flex-grow: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-cyan) transparent;
+        }
+        
+        .win-content::-webkit-scrollbar { width: 4px; }
+        .win-content::-webkit-scrollbar-thumb { background: var(--accent-cyan); border-radius: 4px; }
+
+        /* Specific Window Styles */
+        #win-graphs { grid-row: 1 / 3; grid-column: 1; }
+        #win-vision { grid-row: 1; grid-column: 2; position: relative; }
+        #win-logic { grid-row: 2; grid-column: 2; }
+        #win-wisdom { grid-row: 1 / 3; grid-column: 3; }
+
+        body.chat-focus #win-vision {
+            display: none;
+        }
+        body.chat-focus #win-logic {
+            grid-row: 1 / 3;
+            grid-column: 2;
+        }
+        body.chat-focus #logic-wrap {
+            padding: 14px;
+        }
+        body.chat-focus #conversation-stream {
+            min-height: 56vh;
+        }
+
+        /* Graphs */
+        .chart-container {
+            width: 100%;
+            height: 180px;
+            margin-bottom: 15px;
+        }
+        .chart-label {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-bottom: -15px;
             font-weight: 600;
         }
 
-        .panel-body {
-            flex-grow: 1;
-            overflow-y: auto;
-            scrollbar-width: none;
+        /* Vision Feed */
+        .vision-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
         }
-
-        .panel-body::-webkit-scrollbar {
-            display: none;
+        .scanline {
+            position: absolute; width: 100%; height: 2px; background: var(--accent-cyan);
+            opacity: 0.3; top: 0; left: 0; box-shadow: 0 0 10px var(--accent-cyan);
+            animation: scan 3s linear infinite; pointer-events: none;
         }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
-        /* Logic Feed Styles */
+        /* Terminal Text */
         .terminal-text {
             font-family: var(--font-mono);
             font-size: 0.85rem;
             line-height: 1.6;
             color: #b0b0cc;
         }
-
         .step-active {
             color: var(--accent-cyan);
             border-left: 3px solid var(--accent-cyan);
-            padding: 15px;
-            margin: 15px 0;
+            padding: 10px 15px;
+            margin: 10px 0;
             background: linear-gradient(90deg, rgba(0, 242, 255, 0.1), transparent);
             border-radius: 0 8px 8px 0;
-            animation: fadeIn 0.5s ease-out;
+        }
+        .step-inactive {
+            color: #666;
+            padding: 5px 15px;
+            border-left: 3px solid transparent;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateX(-10px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        /* Health Meters */
-        .meter-container {
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
-        }
-
-        .meter {
-            height: 50px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 12px;
-            position: relative;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .meter-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
-            width: 0%;
-            transition: width 1.5s cubic-bezier(0.23, 1, 0.32, 1);
-            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
-        }
-
-        .meter-label {
-            position: absolute;
-            top: 50%;
-            left: 15px;
-            transform: translateY(-50%);
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            z-index: 2;
-            color: #fff;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .meter-value {
-            position: absolute;
-            top: 50%;
-            right: 15px;
-            transform: translateY(-50%);
-            font-size: 1rem;
-            font-family: var(--font-mono);
-            z-index: 2;
-            color: var(--accent-cyan);
-            font-weight: bold;
-        }
-
-        /* Wisdom Forge Matrix */
+        /* Tags and Matrix */
         .wisdom-tag {
-            background: rgba(157, 0, 255, 0.08);
-            border: 1px solid rgba(157, 0, 255, 0.2);
+            background: rgba(157, 0, 255, 0.1);
+            border: 1px solid rgba(157, 0, 255, 0.3);
+            border-left: 3px solid var(--accent-purple);
             padding: 12px;
-            border-radius: 12px;
+            border-radius: 6px;
             margin-bottom: 12px;
             font-size: 0.85rem;
             color: #e0b0ff;
             line-height: 1.4;
-            transition: all 0.3s ease;
         }
-
-        .wisdom-tag:hover {
-            background: rgba(157, 0, 255, 0.15);
-            border-color: var(--accent-purple);
-        }
-
-        /* Hologram Effect */
-        .scanline {
-            width: 100%;
-            height: 100px;
-            background: linear-gradient(0deg, transparent, rgba(0, 242, 255, 0.05), transparent);
-            position: absolute;
-            top: -100px;
-            left: 0;
-            pointer-events: none;
-            z-index: 100;
-            animation: scanLoop 4s linear infinite;
-        }
-
-        @keyframes scanLoop {
-            0% { top: -100px; }
-            100% { top: 100%; }
-        }
-
-        .status-pill {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            background: rgba(0, 255, 128, 0.1);
-            color: #00ff80;
-            border: 1px solid rgba(0, 255, 128, 0.3);
-            text-transform: uppercase;
-        }
-
-        #target-task {
-            font-size: 1.4rem;
-            color: #fff;
-            text-shadow: 0 0 20px rgba(0, 242, 255, 0.5);
-            margin: 15px 0;
-            text-align: center;
-            max-width: 600px;
-        }
-
-        .neural-glow {
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(0, 242, 255, 0.15), transparent 70%);
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        @keyframes pulseGlow {
-            0% { opacity: 0.4; text-shadow: 0 0 5px var(--accent-cyan); }
-            50% { opacity: 1; text-shadow: 0 0 20px var(--accent-cyan); }
-            100% { opacity: 0.4; text-shadow: 0 0 5px var(--accent-cyan); }
-        }
-
-        .evolution-metrics {
+        
+        /* Stats */
+        .stat-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 25px;
+            gap: 10px;
+            margin-bottom: 20px;
         }
-
-        .metric-mini {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(0, 242, 255, 0.1);
+        .stat-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
             padding: 10px;
-            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
             text-align: center;
         }
+        .stat-box span { display: block; font-size: 0.6rem; color: #888; text-transform: uppercase; }
+        .stat-box strong { display: block; font-size: 1.2rem; color: var(--accent-cyan); font-family: var(--font-mono); margin-top: 5px; }
 
-        .metric-mini .label {
-            font-size: 0.6rem;
-            color: #666;
-            text-transform: uppercase;
-            display: block;
-            margin-bottom: 4px;
+        /* --- Chat Panel (ChatGPT-like) --- */
+        #logic-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 12px;
         }
-
-        .metric-mini .value {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--accent-cyan);
+        #conversation-stream {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            background: var(--chat-surface);
+            border: 1px solid var(--chat-border);
+            border-radius: 14px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: #7dd3fc transparent;
+        }
+        #conversation-stream::-webkit-scrollbar { width: 6px; }
+        #conversation-stream::-webkit-scrollbar-thumb { background: #7dd3fc; border-radius: 8px; }
+        .turn {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 10px 12px;
+            border: 1px solid transparent;
+            border-radius: 12px;
+        }
+        .turn.user { background: var(--chat-user); border-color: rgba(74, 222, 128, 0.35); }
+        .turn.assistant { background: var(--chat-assistant); border-color: rgba(255, 255, 255, 0.12); }
+        .turn.system { background: rgba(56, 189, 248, 0.08); border-color: rgba(56, 189, 248, 0.3); }
+        .turn-role {
+            font-size: 0.72rem;
+            letter-spacing: 0.7px;
+            text-transform: uppercase;
+            color: #94a3b8;
             font-family: var(--font-mono);
         }
-
-        .progress-mini {
-            height: 6px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 3px;
-            margin-top: 8px;
+        .turn-content {
+            font-size: 0.92rem;
+            line-height: 1.55;
+            color: #e5e7eb;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        #pipeline-drawer {
+            background: rgba(8, 12, 24, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 12px;
             overflow: hidden;
         }
-
-        #depth-bar {
-            height: 100%;
-            background: var(--accent-cyan);
-            width: 75%;
-            box-shadow: 0 0 10px var(--accent-cyan);
-        }
-
-        #task-iteration {
-            position: absolute;
-            top: 20px;
-            right: 25px;
+        #pipeline-drawer summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 10px 12px;
             font-family: var(--font-mono);
-            font-size: 0.7rem;
-            color: var(--accent-magenta);
-            border: 1px solid var(--accent-magenta);
-            padding: 2px 8px;
-            border-radius: 4px;
-        }
-
-        .wisdom-tag {
-            background: rgba(188, 19, 254, 0.1);
-            border-left: 3px solid var(--accent-magenta);
-            padding: 10px;
-            border-radius: 0 10px 10px 0;
-            margin-bottom: 8px;
+            color: #7dd3fc;
             font-size: 0.8rem;
-            color: #d8b;
+            text-transform: uppercase;
+            letter-spacing: 0.9px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+            user-select: none;
+        }
+        #pipeline-drawer summary::-webkit-details-marker { display: none; }
+        #log-container {
+            max-height: 180px;
+            overflow-y: auto;
+            padding: 12px;
         }
 
+        #os-chatbar {
+            width: 100%;
+            background: var(--chat-panel);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--chat-border);
+            border-radius: 18px;
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.55);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        #os-chatbar:focus-within {
+            border-color: #22c55e;
+            box-shadow: 0 10px 24px rgba(34, 197, 94, 0.25);
+        }
+        #chat-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+        #chat-mode {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(34, 197, 94, 0.45);
+            background: rgba(34, 197, 94, 0.12);
+            color: #bbf7d0;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.7px;
+            text-transform: uppercase;
+        }
+        #chat-hint {
+            color: #64748b;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+        }
+        #chat-focus-toggle {
+            border: 1px solid rgba(125, 211, 252, 0.45);
+            background: rgba(125, 211, 252, 0.08);
+            color: #bae6fd;
+            border-radius: 999px;
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            padding: 6px 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        #chat-focus-toggle:hover {
+            background: rgba(125, 211, 252, 0.18);
+        }
+        body.chat-focus #chat-focus-toggle {
+            border-color: rgba(34, 197, 94, 0.55);
+            background: rgba(34, 197, 94, 0.14);
+            color: #bbf7d0;
+        }
+        #chat-composer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px;
+            border-radius: 14px;
+            background: rgba(2, 6, 23, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+        #chat-input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            padding: 0 10px;
+            outline: none;
+        }
+        #chat-input::placeholder { color: rgba(255,255,255,0.3); }
+        #chat-submit {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #f0fdf4;
+            border: none;
+            border-radius: 12px;
+            height: 38px;
+            min-width: 112px;
+            padding: 0 16px;
+            font-family: var(--font-main);
+            font-weight: 700;
+            letter-spacing: 0.7px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #chat-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 16px rgba(34, 197, 94, 0.55);
+        }
+
+        @media (max-width: 1180px) {
+            #window-area {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto;
+                overflow-y: auto;
+            }
+            #win-graphs, #win-vision, #win-logic, #win-wisdom {
+                grid-row: auto;
+                grid-column: 1;
+                min-height: 280px;
+            }
+            #conversation-stream { min-height: 240px; }
+            #log-container { max-height: 160px; }
+        }
 
     </style>
 </head>
 <body>
     <div id="canvas-container"></div>
-    <div class="neural-glow"></div>
-
-    <div class="overlay">
+    
+    <div id="os-desktop">
         <!-- Header -->
-        <header class="header">
-            <p>QUANTUM PROCESSING UNIT • VERSION 2.5</p>
-            <h1>LaiNUX : NEURAL OS</h1>
-            <div id="task-iteration">EVO_ITERATION: 0</div>
+        <header id="os-menubar">
+            <div class="logo">LaiNUX <span>v2.5 // Neural Core</span></div>
+            <div id="goal-display">Waiting for secure neural uplink...</div>
+            <div class="sys-tray">
+                <span>Iteration: <span id="hdr-iter" style="color:var(--accent-magenta)">0</span></span>
+                <span id="hdr-status" class="status-badge">STANDBY</span>
+                <span id="clock">00:00:00</span>
+            </div>
         </header>
 
-        <!-- Left Column -->
-        <div style="display: flex; flex-direction: column; gap: 25px; grid-row: 2;">
-            <div class="panel" style="height: 220px;">
-                <div class="panel-header">
-                    <span>ARCHITECTURE HEALTH</span>
-                    <span class="status-pill">OPTIMAL</span>
+        <!-- Main Workspace -->
+        <div id="window-area">
+            
+            <!-- Left: High-End Monitoring -->
+            <div class="os-window" id="win-graphs">
+                <div class="win-titlebar">Architecture Telemetry <span style="color:#00ff80">●</span></div>
+                <div class="win-content">
+                    <div class="stat-grid">
+                        <div class="stat-box"><span>Neural Depth</span><strong id="evo-depth">94%</strong></div>
+                        <div class="stat-box"><span>Self-Healing</span><strong id="heal-stat" style="color:#00ff80">ACTIVE</strong></div>
+                    </div>
+                    
+                    <div class="chart-label">SYNAPTIC CPU LOAD</div>
+                    <div id="chart-cpu" class="chart-container"></div>
+
+                    <div class="chart-label">QUANTUM MEMORY STATE</div>
+                    <div id="chart-ram" class="chart-container"></div>
+                    
+                    <div class="chart-label">NETWORK I/O FREQUENCY</div>
+                    <div id="chart-net" class="chart-container"></div>
                 </div>
-                <div class="panel-body">
-                    <div class="meter-container">
-                        <div class="meter">
-                            <div class="meter-label">Synaptic Load</div>
-                            <div id="cpu-fill" class="meter-fill" style="width: 14%;"></div>
-                            <div id="cpu-val" class="meter-value">14%</div>
+            </div>
+
+            <!-- Center Top: Vision / Context Array -->
+            <div class="os-window" id="win-vision">
+                <div class="win-titlebar">Vision / Environment Replay <span>[LIVE FEED]</span></div>
+                <div class="win-content" style="padding: 10px; position: relative;">
+                    <img id="vision-feed" class="vision-img" src="/logs/vision_captured.png" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMwYTBmMWMiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZmlsbD0iIzMzNCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNHB4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Tk8gVklTSU9OIEZFRUQgQVZBSUxBQkxFPC90ZXh0Pjwvc3ZnPg=='">
+                    <div class="scanline"></div>
+                </div>
+            </div>
+
+            <!-- Center Bottom: Execution Logs -->
+            <div class="os-window" id="win-logic">
+                <div class="win-titlebar">Conversation Workspace <span id="pipeline-status" style="color:#aaa">IDLE</span></div>
+                <div class="win-content" id="logic-wrap">
+                    <div id="conversation-stream">
+                        <div class="turn system">
+                            <div class="turn-role">System</div>
+                            <div class="turn-content">Ready. Ask in natural language. I will execute and explain results.</div>
                         </div>
-                        <div class="meter">
-                            <div class="meter-label">Quantum State</div>
-                            <div id="ram-fill" class="meter-fill" style="width: 42%; background: linear-gradient(90deg, var(--accent-magenta), var(--accent-purple));"></div>
-                            <div id="ram-val" class="meter-value">4.2 GB</div>
+                    </div>
+                    <details id="pipeline-drawer">
+                        <summary>Execution Trace</summary>
+                        <div class="terminal-text" id="log-container">
+                            <div style="opacity: 0.5;">> Agentic OS Systems Initialized...</div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <!-- Right: Wisdom Forge & Human Summary -->
+            <div class="os-window" id="win-wisdom">
+                <div class="win-titlebar">
+                    <div style="display: flex; gap: 15px;">
+                        <span id="tab-wisdom-btn" style="cursor: pointer; color: var(--accent-cyan); border-bottom: 2px solid var(--accent-cyan); padding-bottom: 2px;">NEURAL WISDOM</span>
+                        <span id="tab-summary-btn" style="cursor: pointer; color: #888; border-bottom: 2px solid transparent; padding-bottom: 2px;">FINAL DECISION</span>
+                    </div>
+                </div>
+                <div class="win-content">
+                    <div id="tab-wisdom-content">
+                        <div style="font-size: 0.7rem; color: #888; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">Synthesized Knowledge</div>
+                        <div id="wisdom-container">
+                            <div class="wisdom-tag">Awaiting persistent memory extraction...</div>
+                        </div>
+                        
+                        <div style="font-size: 0.7rem; color: #888; margin: 25px 0 10px 0; text-transform: uppercase; letter-spacing: 1px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">Diagnostic Subroutine</div>
+                        <div id="healing-logs" class="terminal-text" style="color: #00ff80; font-size: 0.75rem;">
+                            [SYS] Integrity seals nominal.
+                        </div>
+                    </div>
+                    
+                    <div id="tab-summary-content" style="display: none;">
+                        <div style="font-size: 0.7rem; color: #888; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">Human-Readable Explanation</div>
+                        <div id="human-summary-container" class="terminal-text" style="color: #fff; line-height: 1.6; font-size: 0.95rem;">
+                            No final decision processed yet.
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="panel" style="flex-grow: 1;">
-                <div class="panel-header">
-                    <span>WISDOM FORGE</span>
-                    <span style="color: #666; font-size: 0.7rem;">DEEP LEARNING CACHE</span>
-                </div>
-                <div class="panel-body">
-                    <div class="evolution-metrics">
-                        <div class="metric-mini">
-                            <span class="label">Evolution Depth</span>
-                            <span class="value" id="evo-depth">94%</span>
-                            <div class="progress-mini"><div id="depth-bar"></div></div>
-                        </div>
-                        <div class="metric-mini">
-                            <span class="label">Self-Healing</span>
-                            <span class="value" style="color: #00ff80;">ACTIVE</span>
-                        </div>
-                    </div>
-                    <div id="wisdom-container">
-                        <div class="wisdom-tag">Neural pathway optimization initialized...</div>
-                        <div class="wisdom-tag">Quantum coherence maintained at 99.8%.</div>
-                    </div>
-                </div>
-            </div>
         </div>
 
-        <!-- Center Space -->
-        <div style="grid-column: 2; pointer-events: none; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 60px;">
-             <div id="target-task">Initializing Neural Core...</div>
-             <div style="color: var(--accent-cyan); font-family: var(--font-mono); font-size: 0.9rem; letter-spacing: 2px; animation: pulseGlow 2s infinite;">[ CORE_STABILITY_LOCKED ]</div>
-        </div>
-
-        <!-- Right Column -->
-        <div style="display: flex; flex-direction: column; gap: 25px; grid-row: 2;">
-            <div class="panel" style="flex-grow: 2;">
-                <div class="panel-header">
-                    <span>EXECUTION LOGIC FEED</span>
-                    <span class="status-pill" id="status-tag">STANDBY</span>
-                </div>
-                <div class="panel-body terminal-text" id="log-container">
-                    <div style="opacity: 0.5;">> Neural OS v2.5 Online...</div>
-                    <div style="opacity: 0.5;">> Waiting for synaptic input...</div>
-                </div>
+        <!-- Chat Input Area -->
+        <div id="os-chatbar">
+            <div id="chat-toolbar">
+                <span id="chat-mode">LaiNUX Assistant</span>
+                <span id="chat-hint">Tap chat to expand middle and hide live feed</span>
+                <button id="chat-focus-toggle" type="button">Focus Chat</button>
             </div>
-
-            <div class="panel" style="height: 180px;">
-                <div class="panel-header">
-                    <span>SELF-HEALING ENGINE</span>
-                </div>
-                <div class="panel-body terminal-text" id="healing-logs" style="color: #00ff80; font-size: 0.75rem;">
-                    [INFO] AI Integrity: SEALED
-                    [INFO] Monitoring recursive loops...
-                </div>
+            <div id="chat-composer">
+                <input type="text" id="chat-input" placeholder="Message LaiNUX...">
+                <button id="chat-submit">EXECUTE</button>
             </div>
         </div>
-        <div class="scanline"></div>
     </div>
 
     <script>
-        // --- THREE.JS ADVANCED NEURAL ENGINE ---
-        const container = document.getElementById('canvas-container');
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        container.appendChild(renderer.domElement);
+        // --- 1. CLOCK ---
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-US', {hour12: false});
+        }, 1000);
 
-        camera.position.z = 8;
-
-        // Space Dust / Particles
-        const partGeo = new THREE.BufferGeometry();
-        const partCount = 1000;
-        const partPos = new Float32Array(partCount * 3);
-        for(let i=0; i<partCount*3; i++) partPos[i] = (Math.random() - 0.5) * 25;
-        partGeo.setAttribute('position', new THREE.BufferAttribute(partPos, 3));
-        const partMat = new THREE.PointsMaterial({ color: 0x00f2ff, size: 0.02, transparent: true, opacity: 0.4 });
-        const particles = new THREE.Points(partGeo, partMat);
-        scene.add(particles);
-
-        // Neural Net Core
-        const nodeGroup = new THREE.Group();
-        const nodeCount = 80;
-        const nodes = [];
-        const nodeGeometry = new THREE.SphereGeometry(0.06, 12, 12);
-        const nodeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        
-        for(let i=0; i<nodeCount; i++) {
-            const mesh = new THREE.Mesh(nodeGeometry, nodeMaterial.clone());
-            mesh.position.set(
-                (Math.random() - 0.5) * 8,
-                (Math.random() - 0.5) * 8,
-                (Math.random() - 0.5) * 8
-            );
-            // Random movement vectors
-            mesh.userData.velocity = new THREE.Vector3(
-                (Math.random() - 0.5) * 0.005,
-                (Math.random() - 0.5) * 0.005,
-                (Math.random() - 0.5) * 0.005
-            );
-            mesh.userData.originalPos = mesh.position.clone();
-            nodes.push(mesh);
-            nodeGroup.add(mesh);
-        }
-
-        // Dynamic Connections
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.15 });
-        let lineGeometry = new THREE.BufferGeometry();
-        let lines = new THREE.LineSegments(lineGeometry, lineMaterial);
-        nodeGroup.add(lines);
-
-        scene.add(nodeGroup);
-
-        // Lights
-        const light = new THREE.PointLight(0x00f2ff, 1, 100);
-        light.position.set(0, 0, 5);
-        scene.add(light);
-
-        function animate() {
-            requestAnimationFrame(animate);
-            const time = Date.now() * 0.001;
-
-            // Animate Particles
-            particles.rotation.y += 0.0005;
-
-            // Animate Nodes individually (Drifting)
-            const positions = [];
-            nodes.forEach((node, i) => {
-                // Harmonic drift
-                node.position.add(node.userData.velocity);
-                
-                // Keep within bounds
-                if (node.position.distanceTo(new THREE.Vector3(0,0,0)) > 6) {
-                    node.userData.velocity.negate();
-                }
-
-                // Individual pulse
-                const pulse = Math.sin(time * 2 + i) * 0.5 + 1.2;
-                node.scale.setScalar(pulse);
-                node.material.color.setHSL(0.5 + Math.sin(time * 0.5 + i) * 0.1, 1, 0.5 + Math.sin(time) * 0.1);
-            });
-
-            // Recompute lines
-            const linePositions = [];
-            for(let i=0; i<nodes.length; i++) {
-                for(let j=i+1; j<nodes.length; j++) {
-                    const dist = nodes[i].position.distanceTo(nodes[j].position);
-                    if(dist < 2.5) {
-                        linePositions.push(nodes[i].position.x, nodes[i].position.y, nodes[i].position.z);
-                        linePositions.push(nodes[j].position.x, nodes[j].position.y, nodes[j].position.z);
-                    }
-                }
-            }
-            nodeGroup.remove(lines);
-            lineGeometry = new THREE.BufferGeometry();
-            lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
-            lines = new THREE.LineSegments(lineGeometry, lineMaterial);
-            nodeGroup.add(lines);
-
-            nodeGroup.rotation.y += 0.001;
-            nodeGroup.rotation.z += 0.0005;
-
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        // --- 2. GSAP INTRO ANIMATION ---
+        gsap.from("#os-menubar", { y: -50, opacity: 0, duration: 1, ease: "power3.out" });
+        gsap.from(".os-window", {
+            y: 40, opacity: 0, duration: 0.8, stagger: 0.15, 
+            ease: "back.out(1.2)", delay: 0.3
         });
 
-        // --- WEBSOCKET SYNC ---
+        // --- 3. HIGH-END ECHARTS SETUP ---
+        const commonChartOptions = {
+            backgroundColor: 'transparent',
+            tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
+            grid: { left: '0%', right: '0%', bottom: '0%', top: '10%', containLabel: false },
+            xAxis: { type: 'category', boundaryGap: false, data: Array.from({length: 40}, (_,i)=>i), show: false },
+            yAxis: { type: 'value', show: false, max: 100 }
+        };
+
+        const createGradient = (c1, c2) => new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: c1}, {offset: 1, color: c2}]);
+
+        // CPU Chart
+        const cpuChart = echarts.init(document.getElementById('chart-cpu'));
+        let cpuData = Array(40).fill(0);
+        cpuChart.setOption({
+            ...commonChartOptions,
+            series: [{
+                name: 'CPU', type: 'line', smooth: 0.4, symbol: 'none',
+                lineStyle: { width: 2, color: '#00f2ff', shadowColor: '#00f2ff', shadowBlur: 10 },
+                areaStyle: { color: createGradient('rgba(0, 242, 255, 0.5)', 'rgba(0, 242, 255, 0)') },
+                data: cpuData
+            }]
+        });
+
+        // RAM Chart
+        const ramChart = echarts.init(document.getElementById('chart-ram'));
+        let ramData = Array(40).fill(40);
+        ramChart.setOption({
+            ...commonChartOptions,
+            series: [{
+                name: 'RAM', type: 'line', smooth: 0.4, symbol: 'none',
+                lineStyle: { width: 2, color: '#9d00ff', shadowColor: '#9d00ff', shadowBlur: 10 },
+                areaStyle: { color: createGradient('rgba(157, 0, 255, 0.5)', 'rgba(157, 0, 255, 0)') },
+                data: ramData
+            }]
+        });
+
+        // Network Chart
+        const netChart = echarts.init(document.getElementById('chart-net'));
+        let netData = Array(40).fill(0);
+        netChart.setOption({
+            ...commonChartOptions,
+            series: [{
+                name: 'NET', type: 'line', smooth: 0.4, symbol: 'none',
+                lineStyle: { width: 2, color: '#ff00ff', shadowColor: '#ff00ff', shadowBlur: 10 },
+                areaStyle: { color: createGradient('rgba(255, 0, 255, 0.5)', 'rgba(255, 0, 255, 0)') },
+                data: netData
+            }]
+        });
+
+        // Resize charts on window resize
+        window.addEventListener('resize', () => { cpuChart.resize(); ramChart.resize(); netChart.resize(); });
+
+        // Chart Auto-Updater (Simulation mixed with actual WS events if available)
+        setInterval(() => {
+            const cpuNoise = Math.max(0, Math.min(100, (cpuData[39] || 20) + (Math.random()*20 - 10)));
+            cpuData.shift(); cpuData.push(window.measuredCPU || cpuNoise);
+            cpuChart.setOption({series: [{data: cpuData}]});
+
+            const ramNoise = Math.max(20, Math.min(80, (ramData[39] || 40) + (Math.random()*4 - 2)));
+            ramData.shift(); ramData.push(ramNoise);
+            ramChart.setOption({series: [{data: ramData}]});
+
+            const netNoise = Math.random() > 0.8 ? Math.random() * 80 + 20 : Math.random() * 10;
+            netData.shift(); netData.push(netNoise);
+            netChart.setOption({series: [{data: netData}]});
+        }, 1000);
+
+
+        // --- 4. WEBSOCKET SYNC ---
         const ws = new WebSocket('ws://' + window.location.host + '/ws');
-        const logBox = document.getElementById('log-container');
-        const wisdomBox = document.getElementById('wisdom-container');
-        const goalTxt = document.getElementById('target-task');
-        const cpuBar = document.getElementById('cpu-fill');
-        const ramBar = document.getElementById('ram-fill');
-        const statusTag = document.getElementById('status-tag');
+        let currentPlanLength = 0;
+        let lastFinalSignature = "";
+
+        const escapeHtml = (value) => {
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        };
+
+        const formatToolOutput = (value) => {
+            if (value === null || value === undefined) return "";
+            if (typeof value === "string") return escapeHtml(value);
+            try {
+                return escapeHtml(JSON.stringify(value, null, 2));
+            } catch (_err) {
+                return escapeHtml(String(value));
+            }
+        };
+
+        const appendChatMessage = (role, text) => {
+            const thread = document.getElementById('conversation-stream');
+            const turn = document.createElement('div');
+            turn.className = `turn ${role}`;
+
+            const roleNode = document.createElement('div');
+            roleNode.className = 'turn-role';
+            roleNode.innerText = role === 'user' ? 'You' : (role === 'assistant' ? 'LaiNUX' : 'System');
+
+            const contentNode = document.createElement('div');
+            contentNode.className = 'turn-content';
+            contentNode.innerText = text;
+
+            turn.appendChild(roleNode);
+            turn.appendChild(contentNode);
+            thread.appendChild(turn);
+            thread.scrollTop = thread.scrollHeight;
+        };
+
+        const setChatFocus = (enabled) => {
+            document.body.classList.toggle('chat-focus', enabled);
+            const toggleBtn = document.getElementById('chat-focus-toggle');
+            toggleBtn.innerText = enabled ? 'Exit Focus' : 'Focus Chat';
+        };
+
+        const toggleChatFocus = () => {
+            setChatFocus(!document.body.classList.contains('chat-focus'));
+        };
 
         ws.onmessage = (event) => {
             const state = JSON.parse(event.data);
             
-            if(state.goal) goalTxt.innerText = state.goal;
-            statusTag.innerText = state.status.toUpperCase();
+            // Header Updates
+            if(state.goal) document.getElementById('goal-display').innerText = "> " + state.goal;
+            const statusNode = document.getElementById('hdr-status');
+            statusNode.innerText = state.status.toUpperCase();
             
+            // Artificial CPU spike on processing
+            if(state.status === "processing") window.measuredCPU = 85 + Math.random()*15;
+            else window.measuredCPU = 10 + Math.random()*15;
+
+            // Plan / Logic Updates
             if(state.plan) {
-                logBox.innerHTML = state.plan.map((step, i) => `
-                    <div class="${i === state.current_step_index ? 'step-active' : ''}">
-                        <span style="color: var(--accent-magenta); font-weight: bold;">[TASK_${i+1}]</span> ${step}
-                        <div style="font-size: 0.75rem; color: #88a; margin-top: 5px; font-family: var(--font-mono)">
-                            ${state.tool_outputs[i] || "> Processing logic..."}
+                const logBox = document.getElementById('log-container');
+                const wasScrolledToBottom = logBox.scrollHeight - logBox.clientHeight <= logBox.scrollTop + 10;
+                
+                logBox.innerHTML = state.plan.map((step, i) => {
+                    const isActive = i === state.current_step_index;
+                    const isDone = i < state.current_step_index;
+                    const cName = isActive ? 'step-active' : (isDone ? '' : 'step-inactive');
+                    const icon = isDone ? '✅' : (isActive ? '⚡' : '⏳');
+                    
+                    return `
+                        <div class="${cName}" style="margin-bottom: 12px; border-left: ${isActive ? '3px solid var(--accent-cyan)' : '3px solid transparent'}; padding-left: 15px;">
+                            <div style="font-weight: bold; color: ${isActive ? 'var(--accent-cyan)' : (isDone ? '#fff' : '#444')};">
+                                ${icon} ${step}
+                            </div>
+                            ${state.tool_outputs[i] ? `
+                                <div style="font-size: 0.75rem; color: #88a; margin-top: 4px; padding: 4px 8px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                                    <pre style="white-space: pre-wrap; font-family: var(--font-mono); margin: 0;">${formatToolOutput(state.tool_outputs[i])}</pre>
+                                </div>
+                            ` : (isActive ? '<div style="font-size: 0.7rem; color: #668; margin-top: 4px; font-style: italic;">Processing neural sequence...</div>' : '')}
                         </div>
-                    </div>
-                `).join('');
-                logBox.scrollTop = logBox.scrollHeight;
+                    `;
+                }).join('');
+
+                // Display Final Output prominently if finished
+                if(state.status === "finished" && state.final_result) {
+                    logBox.innerHTML += `
+                        <div style="margin-top: 20px; border: 1px solid var(--accent-cyan); border-radius: 8px; padding: 15px; background: rgba(0, 242, 255, 0.05);">
+                            <div style="font-size: 0.7rem; color: var(--accent-cyan); text-transform: uppercase; margin-bottom: 8px; font-weight: bold;">Final Output Decision</div>
+                            <div style="color: #fff; font-size: 0.9rem; white-space: pre-wrap;">${escapeHtml(state.final_result)}</div>
+                        </div>
+                    `;
+                }
+
+                // GSAP animate new steps
+                if(state.plan.length > currentPlanLength) {
+                    gsap.from(".step-active", { x: -20, opacity: 0, duration: 0.4, ease: "power2.out" });
+                    currentPlanLength = state.plan.length;
+                }
+                
+                if (wasScrolledToBottom) logBox.scrollTop = logBox.scrollHeight;
             }
 
+            // Wisdom / Matrix
             if(state.wisdom) {
-                wisdomBox.innerHTML = state.wisdom.map(w => `<div class="wisdom-tag">${w}</div>`).join('');
-                
-                // Extraction of iteration info if present
-                const iterInfo = state.wisdom.find(w => w.includes("Evolution Cycle"));
-                if(iterInfo) {
-                    const match = iterInfo.match(/Cycle (\d+)/);
-                    if(match) {
-                        document.getElementById('task-iteration').innerText = `EVO_ITERATION: ${match[1]}`;
-                        const depth = 94 + (parseInt(match[1]) * 0.5);
-                        document.getElementById('evo-depth').innerText = depth.toFixed(1) + "%";
-                        document.getElementById('depth-bar').style.width = depth + "%";
-                    }
+                document.getElementById('wisdom-container').innerHTML = state.wisdom.map(w => `<div class="wisdom-tag">${w}</div>`).join('');
+                const iterMatch = state.wisdom.join(" ").match(/Cycle (\d+)/);
+                if(iterMatch) {
+                    document.getElementById('hdr-iter').innerText = iterMatch[1];
+                    const depth = 94 + (parseInt(iterMatch[1]) * 0.5);
+                    document.getElementById('evo-depth').innerText = depth.toFixed(1) + "%";
                 }
             }
 
+            // Self-Healing
             if(state.reflection) {
                 document.getElementById('healing-logs').innerText = `[REFLECT] ${state.reflection}`;
             }
 
+            // Human Summary
+            if(state.summary) {
+                const summaryBox = document.getElementById('human-summary-container');
+                summaryBox.innerText = state.summary;
+                
+                // Automatically switch to the "Final Decision" tab when a summary arrives
+                const summaryBtn = document.getElementById('tab-summary-btn');
+                if (summaryBtn.style.color === "rgb(136, 136, 136)" || summaryBtn.style.color === "#888") {
+                    summaryBtn.click();
+                }
 
-            // Pseudo-dynamic stats
-            const cpu = Math.floor(Math.random() * 20 + 10);
-            cpuBar.style.width = cpu + "%";
-            document.getElementById('cpu-val').innerText = cpu + "%";
-            ramBar.style.width = "42%";
+                const summarySignature = `${state.goal || ''}|${state.summary}`;
+                if (summarySignature !== lastFinalSignature) {
+                    appendChatMessage('assistant', state.summary);
+                    lastFinalSignature = summarySignature;
+                }
+            } else if (state.status === "finished" && state.final_result) {
+                const finalSignature = `${state.goal || ''}|${state.final_result}`;
+                if (finalSignature !== lastFinalSignature) {
+                    appendChatMessage('assistant', state.final_result);
+                    lastFinalSignature = finalSignature;
+                }
+            }
+
+            if(state.rejection_count > 0) {
+                const hStat = document.getElementById('heal-stat');
+                hStat.innerText = `WARN (${state.rejection_count})`;
+                hStat.style.color = '#ff0055';
+                window.measuredCPU = 95; // spike cpu on error
+            }
+
+            // Vision Replay update
+            const lastOutput = state.tool_outputs ? state.tool_outputs[state.tool_outputs.length - 1] : "";
+            if(lastOutput && lastOutput.includes("Vision: Screen captured")) {
+                document.getElementById('vision-feed').src = "/logs/vision_captured.png?t=" + new Date().getTime();
+                gsap.from("#vision-feed", { filter: "brightness(2)", duration: 0.5 });
+            }
         };
+
+        // --- 4.5 API COMMANDS ---
+        document.getElementById('chat-submit').addEventListener('click', () => {
+            const input = document.getElementById('chat-input');
+            const val = input.value.trim();
+            if(!val) return;
+            input.value = '';
+
+            appendChatMessage('user', val);
+            appendChatMessage('system', 'Processing request...');
+            
+            // Artificial UI update before WS sync
+            document.getElementById('goal-display').innerText = "> " + val;
+            document.getElementById('hdr-status').innerText = "PROCESSING";
+            
+            console.log("Sending command to backend:", val);
+            
+            fetch('/api/run_task', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ goal: val })
+            }).then(response => response.json())
+              .then(data => console.log("Backend response:", data))
+              .catch(err => console.error("API error:", err));
+        });
+
+        document.getElementById('chat-focus-toggle').addEventListener('click', toggleChatFocus);
+
+        document.getElementById('chat-input').addEventListener('focus', () => {
+            setChatFocus(true);
+        });
+
+        document.getElementById('chat-composer').addEventListener('click', () => {
+            if (!document.body.classList.contains('chat-focus')) {
+                setChatFocus(true);
+            }
+        });
+        
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') document.getElementById('chat-submit').click();
+        });
+
+        // --- 4.6 TAB SWITCHING ---
+        const tabWisBtn = document.getElementById('tab-wisdom-btn');
+        const tabSumBtn = document.getElementById('tab-summary-btn');
+        const tabWisContent = document.getElementById('tab-wisdom-content');
+        const tabSumContent = document.getElementById('tab-summary-content');
+
+        tabWisBtn.addEventListener('click', () => {
+            tabWisContent.style.display = 'block';
+            tabSumContent.style.display = 'none';
+            tabWisBtn.style.color = 'var(--accent-cyan)';
+            tabWisBtn.style.borderBottom = '2px solid var(--accent-cyan)';
+            tabSumBtn.style.color = '#888';
+            tabSumBtn.style.borderBottom = '2px solid transparent';
+        });
+
+        tabSumBtn.addEventListener('click', () => {
+            tabWisContent.style.display = 'none';
+            tabSumContent.style.display = 'block';
+            tabSumBtn.style.color = 'var(--accent-cyan)';
+            tabSumBtn.style.borderBottom = '2px solid var(--accent-cyan)';
+            tabWisBtn.style.color = '#888';
+            tabWisBtn.style.borderBottom = '2px solid transparent';
+        });
+
+        // --- 5. MINIMAL THREE.JS BACKGROUND ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        const geo = new THREE.BufferGeometry();
+        const pts = new Float32Array(3000);
+        for(let i=0; i<3000; i++) pts[i] = (Math.random()-0.5)*20;
+        geo.setAttribute('position', new THREE.BufferAttribute(pts, 3));
+        const mat = new THREE.PointsMaterial({ color: 0x00f2ff, size: 0.05, transparent: true, opacity: 0.5 });
+        const stars = new THREE.Points(geo, mat);
+        scene.add(stars);
+
+        camera.position.z = 5;
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', e => { mouseX = (e.clientX/window.innerWidth)*2-1; mouseY = -(e.clientY/window.innerHeight)*2+1; });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            stars.rotation.y += 0.001;
+            stars.rotation.x += 0.0005;
+            camera.position.x += (mouseX * 0.5 - camera.position.x) * 0.05;
+            camera.position.y += (mouseY * 0.5 - camera.position.y) * 0.05;
+            camera.lookAt(scene.position);
+            renderer.render(scene, camera);
+        }
+        animate();
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+
     </script>
 </body>
 </html>

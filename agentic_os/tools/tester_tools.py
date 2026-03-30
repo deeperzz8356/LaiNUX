@@ -1,13 +1,20 @@
 import subprocess
 import os
+import sys
+from pathlib import Path
 
-def run_tests(test_file="f:/LaiNUX/tests/run_all.py"):
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+def run_tests(test_file=None):
     """Runs automated tests and returns the output."""
     try:
+        if test_file is None:
+            test_file = str(PROJECT_ROOT / "tests" / "run_all.py")
+
         if not os.path.exists(test_file):
-            return "Test file not found. Create f:/LaiNUX/tests/run_all.py first."
+            return f"Test file not found at {test_file}."
         
-        result = subprocess.run(['python', test_file], capture_output=True, text=True, timeout=30)
+        result = subprocess.run([sys.executable, test_file], capture_output=True, text=True, timeout=30)
         output = result.stdout + result.stderr
         
         if result.returncode == 0:

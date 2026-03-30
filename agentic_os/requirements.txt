@@ -1,11 +1,21 @@
+## Recommended runtime: Python 3.10 (validated). Avoid 3.14 for now due ecosystem compatibility.
 langgraph
 langchain
-langchain-openai
-openai
+langchain-mistralai
+langchain-community
 fastapi
-uvicorn
+uvicorn[standard]
 python-dotenv
-langchain-google-genai
 duckduckgo-search
 psutil
-langchain-mistralai
+requests
+httpx
+sentence-transformers
+faiss-cpu
+pyautogui
+pillow
+aiohttp
+numpy
+pandas
+scikit-learn
+ddgs

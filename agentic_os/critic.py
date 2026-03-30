@@ -1,3 +1,4 @@
+import os
 from .state import AgentState
 from .utils.logger import logger
 import json
@@ -10,21 +11,26 @@ class CriticNode:
     """
     def __init__(self, model):
         self.model = model
+        self.production_tools_path = os.path.join(os.path.dirname(__file__), "tools", "file_tools.py")
 
     def __call__(self, state: AgentState):
-        if not state.get('missing_tool') or not state['missing_tool'].startswith("REPAIR:") and not state.get('reflection'):
+        # We only really care about reviewing code or reflection
+        if not state.get('missing_tool'):
              return state
 
         logger.info("Senior Architect: Reviewing generated architecture for integrity...")
         
-        # We need context: What was the goal and what is the current proposed fix/tool?
+        # Identify the proposed change: Is it code or is it just reflection?
+        # If missing_tool has characters like "def " it's likely code.
+        is_code = "def " in state['missing_tool']
+        
         review_prompt = f"""
         You are the 'Senior Architect' of Agentic OS. 
         Your job is to CRITIQUE the following proposed system changes to ensure elite quality.
         
         GOAL: {state['goal']}
         REFLECTION: {state['reflection']}
-        PROPOSED CHANGE/TOOL: {state['missing_tool']}
+        PROPOSED CHANGE: {state['missing_tool']}
         
         CRITERIA:
         1. Security: Is there any dangerous or poorly handled code?
@@ -48,13 +54,30 @@ class CriticNode:
             data = json.loads(response)
             
             if not data.get("passed"):
-                logger.warning(f"Senior Architect: REJECTED Change. Feedback: {data['rejection_feedback']}")
-                # Reset missing_tool so Coder has to try again or we handle the loop
+                # Human Feedback Loop: Increment rejection count (Phase 6)
+                state['rejection_count'] = state.get('rejection_count', 0) + 1
+                logger.warning(f"Senior Architect: REJECTED Change (Count: {state['rejection_count']}). Feedback: {data['rejection_feedback']}")
                 state['reflection'] = f"REJECTED by Architect: {data['rejection_feedback']}"
                 state['status'] = "failed_review"
             else:
                 logger.info(f"Senior Architect: APPROVED (Grade: {data.get('grade')})")
                 
+                # If it's code and it's approved, MERGE it from the sandbox to production
+                if is_code:
+                    try:
+                        with open(self.production_tools_path, 'a', encoding='utf-8') as f:
+                            f.write("\n\n" + state['missing_tool'] + "\n")
+                        logger.info("Senior Architect: Changes MERGED from Sandbox to Production.")
+                        # Reset for next run
+                        state['missing_tool'] = None
+                        state['rejection_count'] = 0 # Successful merge resets count
+                        state['status'] = "finished"
+                    except Exception as e:
+                        logger.error(f"Merge error: {e}")
+                        state['status'] = "failed_merge"
+                else:
+                    state['status'] = "finished"
+                    
         except Exception as e:
             logger.error(f"Critic Node failed: {e}")
             

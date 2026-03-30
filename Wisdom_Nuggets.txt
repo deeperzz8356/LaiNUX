@@ -1,3 +1,0 @@
-{{existing_content}}
-
-Wisdom Nugget: {{new_insight}}

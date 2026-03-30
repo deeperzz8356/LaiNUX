@@ -50,3 +50,7 @@ def kill_process(process_name):
         return f"Process {process_name} not found."
     except Exception as e:
         return f"Error killing process: {str(e)}"
+
+def answer_question(response_text):
+    """Directly answers the user's conversational questions based on knowledge/wisdom without needing system changes."""
+    return f"\n[LaiNUX Response]\n{response_text}\n"

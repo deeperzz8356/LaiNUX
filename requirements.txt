@@ -1,0 +1,7 @@
+-r agentic_os/requirements.txt
+
+# Explicit runtime dependencies used directly in source files
+numpy
+pandas
+scikit-learn
+ddgs

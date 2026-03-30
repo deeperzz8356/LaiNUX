@@ -1,13 +1,59 @@
-venv/
+# Virtual Environments
+/.venv310/
+/.venv/
+/venv/
+env/
+
+# Python artifacts
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environment variables
 .env
-.DS_Store
-*.db
+.env.local
+.env.*.local
 agentic_os/.env
-f:/LaiNUX/agentic_os/.env
-logs/
-captured_vision/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files and logs
 tmp/
-node_modules/
+
+# Logs directory
+logs/
+
+# Test and sandbox directories
+sandbox/
+.pytest_cache/
+
+# Jupyter and notebook files
 .ipynb_checkpoints/
+*.ipynb
+
+# Node modules (if applicable)
+node_modules/
+
+# Keep os_root structure (important for project)
+!os_root/
+!os_root/**/*

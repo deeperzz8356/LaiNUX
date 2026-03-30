@@ -1,0 +1,126 @@
+version: '3.9'
+
+# ============================================================
+# LAINUX MULTI-AGENT NETWORK
+# Each service is an independent AI agent with its own role
+# ============================================================
+
+services:
+
+  # ============ PRIMARY BRAIN (Orchestrator) ============
+  lainux-brain:
+    build:
+      context: ..
+      dockerfile: config/Dockerfile
+    container_name: lainux_brain_01
+    restart: unless-stopped
+    ports:
+      - "8000:8000"           # Main Neural Dashboard
+    volumes:
+      - lainux_memory:/app/agent_memory.db
+      - lainux_logs:/app/logs
+      - lainux_sandbox:/app/sandbox
+      - lainux_knowledge:/app/knowledge_base
+    environment:
+      - OPENROUTER_API_KEY=\
+      - AGENT_ROLE=brain
+      - AGENT_ID=BRAIN_01
+    networks:
+      - lainux_net
+    command: sh -c "Xvfb :99 -screen 0 1280x720x16 & DISPLAY=:99 python -m agentic_os.main --auto"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============ RESEARCHER AGENT (Web Intelligence) ============
+  lainux-researcher:
+    build:
+      context: ..
+      dockerfile: config/Dockerfile
+    container_name: lainux_researcher_01
+    restart: unless-stopped
+    volumes:
+      - lainux_knowledge:/app/knowledge_base  # Shares knowledge with Brain
+      - lainux_logs:/app/logs
+    environment:
+      - OPENROUTER_API_KEY=\
+      - AGENT_ROLE=researcher
+      - AGENT_ID=RESEARCHER_01
+    networks:
+      - lainux_net
+    command: python -m agentic_os.agents.researcher_agent
+    depends_on:
+      lainux-brain:
+        condition: service_healthy
+
+  # ============ CODER AGENT (Tool Factory) ============
+  lainux-coder:
+    build:
+      context: ..
+      dockerfile: config/Dockerfile
+    container_name: lainux_coder_01
+    restart: unless-stopped
+    volumes:
+      - lainux_sandbox:/app/sandbox           # Writes proposed tools here
+      - lainux_logs:/app/logs
+    environment:
+      - OPENROUTER_API_KEY=\
+      - AGENT_ROLE=coder
+      - AGENT_ID=CODER_01
+    networks:
+      - lainux_net
+    command: python -m agentic_os.agents.coder_agent
+
+  # ============ CRITIC AGENT (Architect Review) ============
+  lainux-critic:
+    build:
+      context: ..
+      dockerfile: config/Dockerfile
+    container_name: lainux_critic_01
+    restart: unless-stopped
+    volumes:
+      - lainux_sandbox:/app/sandbox           # Reads from sandbox
+      - lainux_logs:/app/logs
+    environment:
+      - OPENROUTER_API_KEY=\
+      - AGENT_ROLE=critic
+      - AGENT_ID=CRITIC_01
+    networks:
+      - lainux_net
+    command: python -m agentic_os.agents.critic_agent
+
+  # ============ DASHBOARD (UI) ============
+  lainux-dashboard:
+    build:
+      context: ..
+      dockerfile: config/Dockerfile
+    container_name: lainux_dashboard
+    restart: unless-stopped
+    ports:
+      - "8080:8000"           # Accessible at localhost:8080
+    volumes:
+      - lainux_logs:/app/logs
+    networks:
+      - lainux_net
+    command: uvicorn agentic_os.service.api:app --host 0.0.0.0 --port 8000
+
+# ============ SHARED VOLUMES (Persistent Neural Memory) ============
+volumes:
+  lainux_memory:
+    driver: local
+  lainux_logs:
+    driver: local
+  lainux_sandbox:
+    driver: local
+  lainux_knowledge:
+    driver: local
+
+# ============ AGENT NETWORK (Private Mesh) ============
+networks:
+  lainux_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -3,12 +3,20 @@ try:
 except ImportError:
     pyautogui = None
 import os
-import time
+from pathlib import Path
 from ..utils.logger import logger
 
-def screenshot(filename="f:/LaiNUX/logs/vision_captured.png"):
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+def screenshot(filename=None):
     """Takes a full screen capture and saves it to the OS logs folder."""
     try:
+        if pyautogui is None:
+            return "Vision Error: pyautogui is not installed or unavailable in this environment."
+
+        if filename is None:
+            filename = str(PROJECT_ROOT / "logs" / "vision_captured.png")
+
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
         
