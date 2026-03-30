@@ -1,4 +1,7 @@
-import pyautogui
+try:
+    import pyautogui
+except ImportError:
+    pyautogui = None
 import os
 import time
 from ..utils.logger import logger

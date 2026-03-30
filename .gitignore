@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+*.db
+agentic_os/.env
+f:/LaiNUX/agentic_os/.env
+logs/
+captured_vision/
+tmp/
+node_modules/
+.ipynb_checkpoints/

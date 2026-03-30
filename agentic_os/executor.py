@@ -38,7 +38,8 @@ class ExecutorNode:
         - list_files(directory="."): Generic file list.
         - read_file(filename): Read text contents.
         - create_file(filename, content=""): Make a new file.
-        - delete_file(filename): PERMANENTLY delete something.
+        - delete_file(filename): Standard file delete.
+        - secure_delete(filename): SECURELY shred a file (multi-pass overwrite).
         - list_downloads(): Show recent downloads folder.
         - segregate_files(directory="."): Group by extension.
         - get_file_details(filename): Metadata for 1 file.
@@ -68,6 +69,7 @@ class ExecutorNode:
                 "read_file": file_tools.read_file,
                 "create_file": file_tools.create_file,
                 "delete_file": file_tools.delete_file,
+                "secure_delete": file_tools.secure_delete,
                 "list_downloads": file_tools.list_downloads,
                 "segregate_files": file_tools.segregate_files,
                 "get_file_details": file_tools.get_file_details,
